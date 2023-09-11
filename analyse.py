@@ -67,7 +67,7 @@ def should_ignore(path):
     return (".git" in path) or ("target" in path)
 
 def should_ignore_file(file_name):
-    return file_name in ['Cargo.toml', 'README.md', 'eraLogo.svg', '.gitignore', 'eraLogo.png', 'Cargo.lock']
+    return file_name in ['Cargo.toml', 'README.md', 'eraLogo.svg', '.gitignore', 'eraLogo.png', 'Cargo.lock', 'CONTRIBUTING.md', '.DS_Store']
 
 def compare_and_print_files(dir1, dir2, show_details=False):
     files_differ = 0
@@ -141,9 +141,12 @@ def diff_branch(repo_name, branch):
     p = subprocess.run(["git", "checkout", branch], cwd=repo_name)
     if p.returncode != 0:
         return colored("private checkout failed", "yellow")
+    subprocess.run(["git", "pull"], cwd=repo_name)
+
     p = subprocess.run(["git", "checkout", branch], cwd=era_name)
     if p.returncode != 0:
         return colored("public checkout failed", "yellow")
+    subprocess.run(["git", "pull"], cwd=era_name)
     file_differ = compare_and_print_files(repo_name, era_name)
 
     deps = parse_deps(era_name)
