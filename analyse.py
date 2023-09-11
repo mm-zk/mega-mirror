@@ -3,8 +3,10 @@ import os
 import difflib
 from termcolor import colored
 from tabulate import tabulate
+import re
 
 REPOSITORIES = ["zkevm_opcode_defs", "zk_evm", "sync_vm", "zkEVM-assembly", "zkevm_test_harness", "circuit_testing", "heavy-ops-service", "zkevm_tester"]
+#REPOSITORIES = ["zk_evm"]
 
 VERSIONS = ["v1.3.1", "v1.3.2", "v1.3.3", "v1.4.0", "main"]
 
@@ -18,6 +20,33 @@ SKIPPED_COMBINATIONS = [
     ("zkEVM-assembly", "main"),
     ("zkevm_tester", "main"),
 ]
+
+# Define a regular expression pattern to match the desired parts
+#pattern = r'(\w+)\s*=\s*{\s*git\s*=\s*"([^"]+)",\s*(branch|tag)\s*=\s*"([^"]+)"'
+pattern = r'(\w+)\s*=\s*{\s*git\s*=\s*"([^"]+)"(?:,\s*(branch|tag)\s*=\s*"([^"]+)")?'
+
+
+
+def parse_deps(directory):
+    deps = []
+    with open(directory + '/Cargo.toml', 'r', encoding='utf-8') as f1:
+        for line in f1.readlines():
+            if "github.com/matter-labs" in line and ('bellman' not in line):
+                # Use re.search to find the pattern in the line
+                match = re.search(pattern, line)
+                if match:
+                    package_name = match.group(1)
+                    git_url = match.group(2)
+                    branch_or_tag_key = match.group(3)
+                    branch_or_tag_name = match.group(4) if match.group(4) else "None"
+
+                    deps.append([package_name, git_url, branch_or_tag_key, branch_or_tag_name])
+                else:
+                    assert False, "Failed to parse Cargo.toml from: %s line: %s " % (directory, line)
+
+    return deps
+
+
 
 def clone_repo(name):
     print(f"Refreshing repo {name}")
@@ -116,14 +145,14 @@ def diff_branch(repo_name, branch):
     if p.returncode != 0:
         return colored("public checkout failed", "yellow")
     file_differ = compare_and_print_files(repo_name, era_name)
+
+    deps = parse_deps(era_name)
+    versions = ",".join(set(x[3]for x in deps))
+
     if file_differ == 0:
-        return colored("OK", "green")
+        return colored("OK deps:%s" % versions, "green")
     else:
-        return colored("File diffs: %d"% file_differ, "red")
-
-    
-
-
+        return colored("File diffs: %d. deps: %s"% (file_differ, versions), "red")
 
 
 
@@ -138,7 +167,7 @@ for repo in REPOSITORIES:
     repo_summary = [repo]
     for version in VERSIONS:
         files_differ = diff_branch(repo, version)
-        
+
         repo_summary.append(files_differ)
     summary.append(repo_summary)
 
