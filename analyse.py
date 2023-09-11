@@ -6,8 +6,18 @@ from tabulate import tabulate
 
 REPOSITORIES = ["zkevm_opcode_defs", "zk_evm", "sync_vm", "zkEVM-assembly", "zkevm_test_harness", "circuit_testing", "heavy-ops-service", "zkevm_tester"]
 
-VERSIONS = ["v1.3.1", "v1.3.2", "v1.3.3", "v1.4.0"]
+VERSIONS = ["v1.3.1", "v1.3.2", "v1.3.3", "v1.4.0", "main"]
 
+SKIPPED_COMBINATIONS = [
+    ("circuit_testing", "v1.3.1"),
+    ("circuit_testing", "v1.3.2"),
+    ("circuit_testing", "v1.3.3"),
+    ("circuit_testing", "v1.4.0"),
+    ("zk_evm", "main"),
+    ("sync_vm", "main"),
+    ("zkEVM-assembly", "main"),
+    ("zkevm_tester", "main"),
+]
 
 def clone_repo(name):
     print(f"Refreshing repo {name}")
@@ -93,19 +103,23 @@ def compare_and_print_files(dir1, dir2, show_details=False):
 
 
 def diff_branch(repo_name, branch):
+    if (repo_name, branch) in SKIPPED_COMBINATIONS:
+        return colored("skip", 'grey')
+        
+
     print(f"\n\n====== Comparing repo {repo_name} at branch {branch} =======\n\n")
     era_name = "era-" + repo_name
     p = subprocess.run(["git", "checkout", branch], cwd=repo_name)
     if p.returncode != 0:
-        return "private checkout failed"
+        return colored("private checkout failed", "yellow")
     p = subprocess.run(["git", "checkout", branch], cwd=era_name)
     if p.returncode != 0:
-        return "public checkout failed"
+        return colored("public checkout failed", "yellow")
     file_differ = compare_and_print_files(repo_name, era_name)
     if file_differ == 0:
-        return "OK"
+        return colored("OK", "green")
     else:
-        return "File diffs: %d"% file_differ
+        return colored("File diffs: %d"% file_differ, "red")
 
     
 
