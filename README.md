@@ -8,3 +8,11 @@ Make sure to install:
 python3 -m pip install tabulate termcolor
 
 ```
+
+or
+
+```shell
+
+sudo apt install python3-tabulate python3-termcolor
+
+```
